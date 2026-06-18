@@ -5,11 +5,12 @@ import daStyle from 'eslint-config-dicodingacademy';
 import vitest from '@vitest/eslint-plugin';
 
 export default defineConfig([
-  {
-    plugins: {
-      vitest,
-    }
-  },
   daStyle,
-  { files: ['**/*.{js,mjs,cjs}'], plugins: { js }, extends: ['js/recommended'], languageOptions: { globals: { ...globals.browser, ...globals.node, ...vitest.environments.env.globals } } },
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    plugins: { js, vitest },
+    rules: { camelcase: 'off' },
+    extends: ['js/recommended'],
+    languageOptions: { globals: { ...globals.browser, ...globals.node, ...vitest.environments.env.globals } }
+  },
 ]);

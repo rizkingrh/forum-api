@@ -1,8 +1,11 @@
 import request from 'supertest';
 import pool from '../../database/postgres/pool.js';
+import AuthenticationsTableTestHelper from '../../../../tests/AuthenticationsTableTestHelper.js';
 import UsersTableTestHelper from '../../../../tests/UsersTableTestHelper.js';
+import ThreadsTableTestHelper from '../../../../tests/ThreadsTableTestHelper.js';
 import container from '../../container.js';
 import createServer from '../createServer.js';
+import AuthenticationTokenManager from '../../../Applications/security/AuthenticationTokenManager.js';
 
 describe('HTTP server', () => {
   afterAll(async () => {
@@ -11,11 +14,16 @@ describe('HTTP server', () => {
 
   afterEach(async () => {
     await UsersTableTestHelper.cleanTable();
+    await ThreadsTableTestHelper.cleanTable();
   });
+
+  const fakeContainer = {
+    getInstance: vi.fn(),
+  };
 
   it('should response 404 when request unregistered route', async () => {
     // Arrange
-    const app = await createServer({});
+    const app = await createServer(container);
 
     // Action
     const response = await request(app).get('/unregisteredRoute');
@@ -219,6 +227,192 @@ describe('HTTP server', () => {
     });
   });
 
+  describe('when PUT /authentications', () => {
+    it('should return 200 and new access token', async () => {
+      const app = await createServer(container);
+
+      await request(app).post('/users').send({
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      });
+
+      const loginResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+
+      const { refreshToken } = loginResponse.body.data;
+      const response = await request(app).put('/authentications').send({ refreshToken });
+
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+      expect(response.body.data.accessToken).toBeDefined();
+    });
+
+    it('should return 400 payload not contain refresh token', async () => {
+      const app = await createServer(container);
+
+      const response = await request(app).put('/authentications').send({});
+
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('harus mengirimkan token refresh');
+    });
+
+    it('should return 400 if refresh token not string', async () => {
+      const app = await createServer(container);
+
+      const response = await request(app).put('/authentications').send({ refreshToken: 123 });
+
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('refresh token harus string');
+    });
+
+    it('should return 400 if refresh token not valid', async () => {
+      const app = await createServer(container);
+
+      const response = await request(app).put('/authentications').send({ refreshToken: 'invalid_refresh_token' });
+
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('refresh token tidak valid');
+    });
+
+    it('should return 400 if refresh token not registered in database', async () => {
+      const app = await createServer(container);
+      const refreshToken = await container.getInstance(AuthenticationTokenManager.name).createRefreshToken({ username: 'dicoding' });
+
+      const response = await request(app).put('/authentications').send({ refreshToken });
+
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('refresh token tidak ditemukan di database');
+    });
+  });
+
+  describe('when DELETE /authentications', () => {
+    it('should response 200 if refresh token valid', async () => {
+      const app = await createServer(container);
+      const refreshToken = 'refresh_token';
+      await AuthenticationsTableTestHelper.addToken(refreshToken);
+
+      const response = await request(app).delete('/authentications').send({ refreshToken });
+
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+    });
+
+    it('should response 400 if refresh token not registered in database', async () => {
+      const app = await createServer(container);
+      const refreshToken = 'refresh_token';
+
+      const response = await request(app).delete('/authentications').send({ refreshToken });
+
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('refresh token tidak ditemukan di database');
+    });
+
+    it('should response 400 if payload not contain refresh token', async () => {
+      const app = await createServer(container);
+
+      const response = await request(app).delete('/authentications').send({});
+
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+      expect(response.body.message).toEqual('harus mengirimkan token refresh');
+    });
+  });
+
+  describe('when POST /threads', () => {
+    it('should response 401 when missing authentication token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).post('/threads').send({
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      });
+
+      // Assert
+      expect(response.status).toEqual(401);
+    });
+
+    it('should response 201 and persisted thread', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+
+      // First create a user
+      await request(app).post('/users').send(userPayload);
+
+      // Then login to get access token
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Action
+      const response = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+
+      // Assert
+      expect(response.status).toEqual(201);
+      expect(response.body.status).toEqual('success');
+      expect(response.body.data.addedThread).toBeDefined();
+      expect(response.body.data.addedThread.id).toBeDefined();
+      expect(response.body.data.addedThread.title).toEqual(threadPayload.title);
+      expect(response.body.data.addedThread.owner).toBeDefined();
+    });
+
+    it('should response 400 when request payload not contain needed property', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Action
+      const response = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          title: 'Dicoding Forum',
+        });
+
+      // Assert
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+    });
+  });
+
   it('should handle server error correctly', async () => {
     // Arrange
     const requestPayload = {
@@ -226,7 +420,7 @@ describe('HTTP server', () => {
       fullname: 'Dicoding Indonesia',
       password: 'super_secret',
     };
-    const app = await createServer({}); // fake container
+    const app = await createServer(fakeContainer); // fake container
 
     // Action
     const response = await request(app).post('/users').send(requestPayload);

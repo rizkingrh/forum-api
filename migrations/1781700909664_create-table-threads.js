@@ -9,22 +9,21 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-  pgm.createTable('users', {
+  pgm.createTable('threads', {
     id: {
       type: 'VARCHAR(50)',
       primaryKey: true,
     },
-    username: {
+    title: {
+      type: 'TEXT',
+      notNull: true,
+    },
+    body: {
+      type: 'TEXT',
+      notNull: true,
+    },
+    owner_id: {
       type: 'VARCHAR(50)',
-      notNull: true,
-      unique: true,
-    },
-    password: {
-      type: 'TEXT',
-      notNull: true,
-    },
-    fullname: {
-      type: 'TEXT',
       notNull: true,
     },
     created_at: {
@@ -36,6 +35,8 @@ export const up = (pgm) => {
       notNull: true,
     },
   });
+
+  pgm.addConstraint('threads', 'fk_threads.owner_id_users.id', 'FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE');
 };
 
 /**
@@ -44,5 +45,5 @@ export const up = (pgm) => {
  * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
-  pgm.dropTable('users');
+  pgm.dropTable('threads');
 };

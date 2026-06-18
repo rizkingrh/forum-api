@@ -16,6 +16,14 @@ class JwtTokenManager extends AuthenticationTokenManager {
     return this._jwt.sign(payload, config.auth.refreshTokenKey);
   }
 
+  async verifyAccessToken(token) {
+    try {
+      this._jwt.verify(token, config.auth.accessTokenKey);
+    } catch (error) { // eslint-disable-line no-unused-vars
+      throw new InvariantError('access token tidak valid');
+    }
+  }
+
   async verifyRefreshToken(token) {
     try {
       this._jwt.verify(token, config.auth.refreshTokenKey);
