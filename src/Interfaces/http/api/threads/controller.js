@@ -14,7 +14,7 @@ class ThreadsController {
       body: req.body.body,
       owner: req.auth.id,
     };
-    const addedThread = await threadUseCase.addThread(payload);
+    const addedThread = await threadUseCase.execAddThread(payload);
 
     res.status(201).json({
       status: 'success',
@@ -25,7 +25,7 @@ class ThreadsController {
   async getThreadById(req, res) {
     const threadUseCase = this._container.getInstance(ThreadUseCase.name);
     const { threadId } = req.params;
-    const thread = await threadUseCase.getThreadById(threadId);
+    const thread = await threadUseCase.execGetThreadById(threadId);
 
     res.json({
       status: 'success',

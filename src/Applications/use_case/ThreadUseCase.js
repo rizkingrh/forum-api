@@ -5,12 +5,12 @@ class ThreadUseCase {
     this._threadRepository = threadRepository;
   }
 
-  async addThread(useCasePayload) {
+  async execAddThread(useCasePayload) {
     const createThread = new CreateThread(useCasePayload);
     return this._threadRepository.addThread(createThread);
   }
 
-  async getThreadById(threadId) {
+  async execGetThreadById(threadId) {
     return this._threadRepository.getThreadById(threadId);
   }
 }

@@ -31,7 +31,7 @@ describe('ThreadUseCase', () => {
     });
 
     // Action
-    const createdThread = await threadUseCase.addThread(useCasePayload);
+    const createdThread = await threadUseCase.execAddThread(useCasePayload);
 
     // Assert
     expect(createdThread).toStrictEqual(new CreatedThread({
@@ -69,7 +69,7 @@ describe('ThreadUseCase', () => {
     });
 
     // Action
-    const thread = await threadUseCase.getThreadById(threadId);
+    const thread = await threadUseCase.execGetThreadById(threadId);
 
     // Assert
     expect(thread).toStrictEqual(mockThread);
