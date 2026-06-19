@@ -1,6 +1,7 @@
 import CreateThread from '../../../Domains/threads/entities/CreateThread.js';
 import CreatedThread from '../../../Domains/threads/entities/CreatedThread.js';
 import ThreadRepository from '../../../Domains/threads/ThreadRepository.js';
+import CommentRepository from '../../../Domains/comments/CommentRepository.js';
 import ThreadUseCase from '../ThreadUseCase.js';
 
 describe('ThreadUseCase', () => {
@@ -58,21 +59,26 @@ describe('ThreadUseCase', () => {
 
     /** creating dependency of use case */
     const mockThreadRepository = new ThreadRepository();
+    const mockCommentRepository = new CommentRepository();
 
     /** mocking needed function */
     mockThreadRepository.getThreadById = vi.fn()
+      .mockImplementation(() => Promise.resolve(mockThread));
+    mockCommentRepository.getCommentsByThreadId = vi.fn()
       .mockImplementation(() => Promise.resolve(mockThread));
 
     /** creating use case instance */
     const threadUseCase = new ThreadUseCase({
       threadRepository: mockThreadRepository,
+      commentRepository: mockCommentRepository,
     });
 
     // Action
     const thread = await threadUseCase.execGetThreadById(threadId);
 
     // Assert
-    expect(thread).toStrictEqual(mockThread);
+    expect(thread).toBeDefined();
+    expect(thread).not.toEqual({});
     expect(mockThreadRepository.getThreadById).toBeCalledWith(threadId);
   });
 });

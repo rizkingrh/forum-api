@@ -14,6 +14,8 @@ import AuthenticationRepository from '../Domains/authentications/AuthenticationR
 import AuthenticationRepositoryPostgres from './repository/AuthenticationRepositoryPostgres.js';
 import ThreadRepository from '../Domains/threads/ThreadRepository.js';
 import ThreadRepositoryPostgres from './repository/ThreadRepositoryPostgres.js';
+import CommentRepository from '../Domains/comments/CommentRepository.js';
+import CommentRepositoryPostgres from './repository/CommentRepositoryPostgres.js';
 import PasswordHash from '../Applications/security/PasswordHash.js';
 import BcryptPasswordHash from './security/BcryptPasswordHash.js';
 import AuthenticationTokenManager from '../Applications/security/AuthenticationTokenManager.js';
@@ -25,6 +27,7 @@ import LoginUserUseCase from '../Applications/use_case/LoginUserUseCase.js';
 import LogoutUserUseCase from '../Applications/use_case/LogoutUserUseCase.js';
 import RefreshAuthenticationUseCase from '../Applications/use_case/RefreshAuthenticationUseCase.js';
 import ThreadUseCase from '../Applications/use_case/ThreadUseCase.js';
+import CommentUseCase from '../Applications/use_case/CommentUseCase.js';
 
 // creating container
 const container = createContainer();
@@ -82,6 +85,20 @@ container.register([
   {
     key: ThreadRepository.name,
     Class: ThreadRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+        {
+          concrete: nanoid,
+        },
+      ],
+    },
+  },
+  {
+    key: CommentRepository.name,
+    Class: CommentRepositoryPostgres,
     parameter: {
       dependencies: [
         {
@@ -175,6 +192,27 @@ container.register([
     parameter: {
       injectType: 'destructuring',
       dependencies: [
+        {
+          name: 'threadRepository',
+          internal: ThreadRepository.name,
+        },
+        {
+          name: 'commentRepository',
+          internal: CommentRepository.name,
+        },
+      ],
+    },
+  },
+  {
+    key: CommentUseCase.name,
+    Class: CommentUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'commentRepository',
+          internal: CommentRepository.name,
+        },
         {
           name: 'threadRepository',
           internal: ThreadRepository.name,

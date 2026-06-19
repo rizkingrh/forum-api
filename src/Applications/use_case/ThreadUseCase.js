@@ -1,8 +1,9 @@
 import CreateThread from '../../Domains/threads/entities/CreateThread.js';
 
 class ThreadUseCase {
-  constructor({ threadRepository }) {
+  constructor({ threadRepository, commentRepository }) {
     this._threadRepository = threadRepository;
+    this._commentRepository = commentRepository;
   }
 
   async execAddThread(useCasePayload) {
@@ -11,7 +12,13 @@ class ThreadUseCase {
   }
 
   async execGetThreadById(threadId) {
-    return this._threadRepository.getThreadById(threadId);
+    const thread = await this._threadRepository.getThreadById(threadId);
+    const comments = await this._commentRepository.getCommentsByThreadId(threadId);
+
+    return {
+      ...thread,
+      comments,
+    };
   }
 }
 

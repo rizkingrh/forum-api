@@ -4,6 +4,7 @@ import CreateThread from '../../../Domains/threads/entities/CreateThread.js';
 import CreatedThread from '../../../Domains/threads/entities/CreatedThread.js';
 import pool from '../../database/postgres/pool.js';
 import ThreadRepositoryPostgres from '../ThreadRepositoryPostgres.js';
+import NotFoundError from '../../../Commons/exceptions/NotFoundError.js';
 
 describe('ThreadRepositoryPostgres', () => {
   beforeEach(async () => {
@@ -81,14 +82,61 @@ describe('ThreadRepositoryPostgres', () => {
       expect(thread.body).toEqual('Ini adalah forum dicoding');
     });
 
-    it('should throw InvariantError when thread not found', async () => {
+    it('should throw NotFoundError when thread not found', async () => {
       // Arrange
       const threadRepositoryPostgres = new ThreadRepositoryPostgres(pool, () => {});
 
       // Action & Assert
       await expect(threadRepositoryPostgres.getThreadById('thread-999'))
         .rejects
-        .toThrow('thread tidak ditemukan');
+        .toThrow(NotFoundError);
+    });
+
+    it('should return thread with username', async () => {
+      // Arrange
+      await ThreadsTableTestHelper.addThread({
+        id: 'thread-123',
+        title: 'dicoding forum',
+        body: 'Ini adalah forum dicoding',
+        owner: 'user-123',
+      });
+      const threadRepositoryPostgres = new ThreadRepositoryPostgres(pool, () => {});
+
+      // Action
+      const thread = await threadRepositoryPostgres.getThreadById('thread-123');
+
+      // Assert
+      expect(thread.username).toBeDefined();
+      expect(thread.username).toEqual('dicoding');
+    });
+  });
+
+  describe('verifyThreadExists function', () => {
+    it('should throw NotFoundError when thread not found', async () => {
+      // Arrange
+      const threadRepositoryPostgres = new ThreadRepositoryPostgres(pool, () => {});
+
+      // Action & Assert
+      await expect(threadRepositoryPostgres.verifyThreadExists('thread-999'))
+        .rejects
+        .toThrow(NotFoundError);
+    });
+
+    it('should not throw error when thread exists', async () => {
+      // Arrange
+      await ThreadsTableTestHelper.addThread({
+        id: 'thread-123',
+        title: 'dicoding forum',
+        body: 'Ini adalah forum dicoding',
+        owner: 'user-123',
+      });
+      const threadRepositoryPostgres = new ThreadRepositoryPostgres(pool, () => {});
+
+      // Action & Assert
+      await expect(threadRepositoryPostgres.verifyThreadExists('thread-123'))
+        .resolves
+        .not
+        .toThrow();
     });
   });
 });

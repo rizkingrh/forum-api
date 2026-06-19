@@ -1,4 +1,4 @@
-import InvariantError from '../../Commons/exceptions/InvariantError.js';
+import NotFoundError from '../../Commons/exceptions/NotFoundError.js';
 import CreatedThread from '../../Domains/threads/entities/CreatedThread.js';
 import ThreadRepository from '../../Domains/threads/ThreadRepository.js';
 
@@ -25,16 +25,40 @@ class ThreadRepositoryPostgres extends ThreadRepository {
     return new CreatedThread({ ...result.rows[0] });
   }
 
-  async getThreadById(threadId) {
+  async verifyThreadExists(threadId) {
     const query = {
-      text: 'SELECT threads.id, threads.title, threads.body, threads.created_at AS createdAt, users.username AS username FROM threads LEFT JOIN users ON threads.owner_id = users.id WHERE threads.id = $1',
+      text: 'SELECT * FROM threads WHERE id = $1',
       values: [threadId],
     };
 
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
-      throw new InvariantError('thread tidak ditemukan');
+      throw new NotFoundError('thread tidak ditemukan');
+    }
+  }
+
+  async getThreadById(threadId) {
+    const query = {
+      text: `
+        SELECT
+          threads.id,
+          threads.title,
+          threads.body,
+          threads.created_at AS date,
+          users.username
+        FROM threads
+        LEFT JOIN users
+          ON threads.owner_id = users.id
+        WHERE threads.id = $1
+      `,
+      values: [threadId],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rowCount) {
+      throw new NotFoundError('thread tidak ditemukan');
     }
 
     return result.rows[0];
