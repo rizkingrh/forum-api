@@ -16,6 +16,8 @@ import ThreadRepository from '../Domains/threads/ThreadRepository.js';
 import ThreadRepositoryPostgres from './repository/ThreadRepositoryPostgres.js';
 import CommentRepository from '../Domains/comments/CommentRepository.js';
 import CommentRepositoryPostgres from './repository/CommentRepositoryPostgres.js';
+import ReplyRepository from '../Domains/replies/ReplyRepository.js';
+import ReplyRepositoryPostgres from './repository/ReplyRepositoryPostgres.js';
 import PasswordHash from '../Applications/security/PasswordHash.js';
 import BcryptPasswordHash from './security/BcryptPasswordHash.js';
 import AuthenticationTokenManager from '../Applications/security/AuthenticationTokenManager.js';
@@ -28,6 +30,7 @@ import LogoutUserUseCase from '../Applications/use_case/LogoutUserUseCase.js';
 import RefreshAuthenticationUseCase from '../Applications/use_case/RefreshAuthenticationUseCase.js';
 import ThreadUseCase from '../Applications/use_case/ThreadUseCase.js';
 import CommentUseCase from '../Applications/use_case/CommentUseCase.js';
+import ReplyUseCase from '../Applications/use_case/ReplyUseCase.js';
 
 // creating container
 const container = createContainer();
@@ -99,6 +102,20 @@ container.register([
   {
     key: CommentRepository.name,
     Class: CommentRepositoryPostgres,
+    parameter: {
+      dependencies: [
+        {
+          concrete: pool,
+        },
+        {
+          concrete: nanoid,
+        },
+      ],
+    },
+  },
+  {
+    key: ReplyRepository.name,
+    Class: ReplyRepositoryPostgres,
     parameter: {
       dependencies: [
         {
@@ -200,6 +217,10 @@ container.register([
           name: 'commentRepository',
           internal: CommentRepository.name,
         },
+        {
+          name: 'replyRepository',
+          internal: ReplyRepository.name,
+        },
       ],
     },
   },
@@ -209,6 +230,27 @@ container.register([
     parameter: {
       injectType: 'destructuring',
       dependencies: [
+        {
+          name: 'commentRepository',
+          internal: CommentRepository.name,
+        },
+        {
+          name: 'threadRepository',
+          internal: ThreadRepository.name,
+        },
+      ],
+    },
+  },
+  {
+    key: ReplyUseCase.name,
+    Class: ReplyUseCase,
+    parameter: {
+      injectType: 'destructuring',
+      dependencies: [
+        {
+          name: 'replyRepository',
+          internal: ReplyRepository.name,
+        },
         {
           name: 'commentRepository',
           internal: CommentRepository.name,
