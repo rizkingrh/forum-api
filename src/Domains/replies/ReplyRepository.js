@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 class ReplyRepository {
   async addReply(ownerId, commentId, payload) {
     throw new Error('REPLY_REPOSITORY.METHOD_NOT_IMPLEMENTED');

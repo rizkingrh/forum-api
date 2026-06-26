@@ -413,6 +413,550 @@ describe('HTTP server', () => {
     });
   });
 
+  describe('when GET /threads/:threadId', () => {
+    it('should response 200 and thread', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Action
+      const response = await request(app).get(`/threads/${threadId}`);
+
+      // Assert
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+      expect(response.body.data.thread).toBeDefined();
+      expect(response.body.data.thread.id).toBeDefined();
+      expect(response.body.data.thread.title).toEqual(threadPayload.title);
+      expect(response.body.data.thread.body).toEqual(threadPayload.body);
+      expect(response.body.data.thread.username).toBeDefined();
+    });
+
+    it('should response 404 when thread not found', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).get('/threads/thread-123');
+
+      // Assert
+      expect(response.status).toEqual(404);
+      expect(response.body.status).toEqual('fail');
+    });
+  });
+
+  describe('when POST Comment /threads/{threadId}/comments', () => {
+    it('should response 401 when missing authentication token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).post('/threads/thread-123/comments').send({
+        content: 'This is a comment',
+      });
+
+      // Assert
+      expect(response.status).toEqual(401);
+    });
+
+    it('should response 201 and persisted comment', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user
+      await request(app).post('/users').send(userPayload);
+
+      // Then login to get access token
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Action
+      const response = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+
+      // Assert
+      expect(response.status).toEqual(201);
+      expect(response.body.status).toEqual('success');
+      expect(response.body.data.addedComment).toBeDefined();
+      expect(response.body.data.addedComment.id).toBeDefined();
+      expect(response.body.data.addedComment.content).toEqual(commentPayload.content);
+      expect(response.body.data.addedComment.owner).toBeDefined();
+    });
+
+    it('should response 400 when request payload not contain needed property', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Action
+      const response = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({});
+
+      // Assert
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+    });
+  });
+
+  describe('when DELETE Comment /threads/{threadId}/comments/{commentId}', () => {
+    it('should response 401 when missing authentication token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).delete('/threads/thread-123/comments/comment-123');
+
+      // Assert
+      expect(response.status).toEqual(401);
+    });
+
+    it('should response 200 and delete comment', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Action
+      const response = await request(app)
+        .delete(`/threads/${threadId}/comments/${commentId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Assert
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+    });
+
+    it('should response 403 when not owner', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload1 = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const userPayload2 = {
+        username: 'rizki',
+        password: 'secret',
+        fullname: 'Rizki Nugraha',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload1);
+      await request(app).post('/users').send(userPayload2);
+
+      const authResponse1 = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken1 = authResponse1.body.data.accessToken;
+
+      const authResponse2 = await request(app).post('/authentications').send({
+        username: 'rizki',
+        password: 'secret',
+      });
+      const accessToken2 = authResponse2.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken1}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken1}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Action
+      const response = await request(app)
+        .delete(`/threads/${threadId}/comments/${commentId}`)
+        .set('Authorization', `Bearer ${accessToken2}`);
+
+      // Assert
+      expect(response.status).toEqual(403);
+      expect(response.body.status).toEqual('fail');
+    });
+  });
+
+  describe('when POST Replies /threads/{threadId}/comments/{commentId}/replies', () => {
+    it('should response 401 when missing authentication token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).post('/threads/thread-123/comments/comment-123/replies');
+
+      // Assert
+      expect(response.status).toEqual(401);
+    });
+
+    it('should response 201 and add reply', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Action
+      const replyPayload = {
+        content: 'This is a reply',
+      };
+      const replyResponse = await request(app)
+        .post(`/threads/${threadId}/comments/${commentId}/replies`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(replyPayload);
+
+      // Assert
+      expect(replyResponse.status).toEqual(201);
+      expect(replyResponse.body.status).toEqual('success');
+      expect(replyResponse.body.data.addedReply).toHaveProperty('id');
+      expect(replyResponse.body.data.addedReply).toHaveProperty('content');
+      expect(replyResponse.body.data.addedReply).toHaveProperty('owner');
+    });
+
+    it('should response 400 when request payload not contain needed property', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Action
+      const response = await request(app)
+        .post(`/threads/${threadId}/comments/${commentId}/replies`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({});
+
+      // Assert
+      expect(response.status).toEqual(400);
+      expect(response.body.status).toEqual('fail');
+    });
+  });
+
+  describe('when DELETE Replies /threads/{threadId}/comments/{commentId}/replies/{replyId}', () => {
+    it('should response 401 when missing authentication token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).delete('/threads/thread-123/comments/comment-123/replies/reply-123');
+
+      // Assert
+      expect(response.status).toEqual(401);
+    });
+
+    it('should response 200 and delete reply', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+      const replyPayload = {
+        content: 'This is a reply',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Create a reply
+      const replyResponse = await request(app)
+        .post(`/threads/${threadId}/comments/${commentId}/replies`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(replyPayload);
+      const replyId = replyResponse.body.data.addedReply.id;
+
+      // Action
+      const response = await request(app)
+        .delete(`/threads/${threadId}/comments/${commentId}/replies/${replyId}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Assert
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+    });
+
+    it('should response 403 when not owner', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload1 = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const userPayload2 = {
+        username: 'rizki',
+        password: 'secret',
+        fullname: 'Rizki Nugraha',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+      const replyPayload = {
+        content: 'This is a reply',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload1);
+      await request(app).post('/users').send(userPayload2);
+
+      const authResponse1 = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken1 = authResponse1.body.data.accessToken;
+
+      const authResponse2 = await request(app).post('/authentications').send({
+        username: 'rizki',
+        password: 'secret',
+      });
+      const accessToken2 = authResponse2.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken1}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken1}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Create a reply
+      const replyResponse = await request(app)
+        .post(`/threads/${threadId}/comments/${commentId}/replies`)
+        .set('Authorization', `Bearer ${accessToken1}`)
+        .send(replyPayload);
+      const replyId = replyResponse.body.data.addedReply.id;
+
+      // Action
+      const response = await request(app)
+        .delete(`/threads/${threadId}/comments/${commentId}/replies/${replyId}`)
+        .set('Authorization', `Bearer ${accessToken2}`);
+
+      // Assert
+      expect(response.status).toEqual(403);
+      expect(response.body.status).toEqual('fail');
+    });
+  });
+
   it('should handle server error correctly', async () => {
     // Arrange
     const requestPayload = {
