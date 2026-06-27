@@ -35,7 +35,7 @@ describe('HTTP server', () => {
   describe('when GET /', () => {
     it('should return 200 and hello world', async () => {
       // Arrange
-      const app = await createServer({});
+      const app = await createServer(container);
 
       // Action
       const response = await request(app).get('/');

@@ -20,6 +20,10 @@ const createServer = async (container) => {
   app.use('/threads', comments(container));
   app.use('/threads', replies(container));
 
+  app.get('/', (req, res) => {
+    res.status(200).json({ data: 'Hello world!' });
+  });
+
   // 404 handler
   app.use((req, res) => {
     res.status(404).json({
