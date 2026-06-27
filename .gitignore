@@ -1,3 +1,10 @@
+node_modules
+coverage
+.env
+forum-api-webserver.pem
+package-lock.json
+config/database/test.json
+
 # Logs
 logs
 *.log
