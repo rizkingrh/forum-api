@@ -42,7 +42,7 @@ describe('HTTP server', () => {
 
       // Assert
       expect(response.status).toEqual(200);
-      expect(response.body.data).toEqual('Hello world testing new 123!');
+      expect(response.body.data).toEqual('Hello world testing new!');
     });
   });
 
