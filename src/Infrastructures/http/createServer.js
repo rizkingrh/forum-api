@@ -14,7 +14,7 @@ const createServer = async (container) => {
   app.use(express.json());
 
   app.get('/', (req, res) => {
-    res.status(200).json({ data: 'Hello world testing new 123!' });
+    res.status(200).json({ data: 'Hello world testing new!' });
   });
 
   // Register routes
