@@ -6,6 +6,7 @@ import authentications from '../../Interfaces/http/api/authentications/index.js'
 import threads from '../../Interfaces/http/api/threads/index.js';
 import comments from '../../Interfaces/http/api/comments/index.js';
 import replies from '../../Interfaces/http/api/replies/index.js';
+import likes from '../../Interfaces/http/api/likes/index.js';
 
 const createServer = async (container) => {
   const app = express();
@@ -23,6 +24,7 @@ const createServer = async (container) => {
   app.use('/threads', threads(container));
   app.use('/threads', comments(container));
   app.use('/threads', replies(container));
+  app.use('/threads', likes(container));
 
   // 404 handler
   app.use((req, res) => {

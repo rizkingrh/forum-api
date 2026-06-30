@@ -971,6 +971,122 @@ describe('HTTP server', () => {
     });
   });
 
+  describe('when PUT Likes /threads/{threadId}/comments/{commentId}/likes', () => {
+    it('should response 401 when missing authentication token', async () => {
+      // Arrange
+      const app = await createServer(container);
+
+      // Action
+      const response = await request(app).put('/threads/thread-123/comments/comment-123/likes');
+
+      // Assert
+      expect(response.status).toEqual(401);
+    });
+
+    it('should response 200 and toggle like (add)', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Action - like the comment
+      const response = await request(app)
+        .put(`/threads/${threadId}/comments/${commentId}/likes`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Assert
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+    });
+
+    it('should response 200 and toggle like (unlike)', async () => {
+      // Arrange
+      const app = await createServer(container);
+      const userPayload = {
+        username: 'dicoding',
+        password: 'secret',
+        fullname: 'Dicoding Indonesia',
+      };
+      const threadPayload = {
+        title: 'Dicoding Forum',
+        body: 'This is a forum thread',
+      };
+      const commentPayload = {
+        content: 'This is a comment',
+      };
+
+      // First create a user and get token
+      await request(app).post('/users').send(userPayload);
+
+      const authResponse = await request(app).post('/authentications').send({
+        username: 'dicoding',
+        password: 'secret',
+      });
+      const accessToken = authResponse.body.data.accessToken;
+
+      // Create a thread
+      const threadResponse = await request(app)
+        .post('/threads')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(threadPayload);
+      const threadId = threadResponse.body.data.addedThread.id;
+
+      // Create a comment
+      const commentResponse = await request(app)
+        .post(`/threads/${threadId}/comments`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send(commentPayload);
+      const commentId = commentResponse.body.data.addedComment.id;
+
+      // Like the comment first
+      await request(app)
+        .put(`/threads/${threadId}/comments/${commentId}/likes`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Action - unlike the comment (toggle)
+      const response = await request(app)
+        .put(`/threads/${threadId}/comments/${commentId}/likes`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      // Assert
+      expect(response.status).toEqual(200);
+      expect(response.body.status).toEqual('success');
+    });
+  });
+
   it('should handle server error correctly', async () => {
     // Arrange
     const requestPayload = {
