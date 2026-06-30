@@ -13,6 +13,10 @@ const createServer = async (container) => {
   // Middleware for parsing JSON
   app.use(express.json());
 
+  app.get('/', (req, res) => {
+    res.status(200).json({ data: 'Hello world testing new!' });
+  });
+
   // Register routes
   app.use('/users', users(container));
   app.use('/authentications', authentications(container));
