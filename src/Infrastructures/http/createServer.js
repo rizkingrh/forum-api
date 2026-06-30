@@ -13,16 +13,16 @@ const createServer = async (container) => {
   // Middleware for parsing JSON
   app.use(express.json());
 
+  app.get('/', (req, res) => {
+    res.status(200).json({ data: 'Hello world testing new 123!' });
+  });
+
   // Register routes
   app.use('/users', users(container));
   app.use('/authentications', authentications(container));
   app.use('/threads', threads(container));
   app.use('/threads', comments(container));
   app.use('/threads', replies(container));
-
-  app.get('/', (req, res) => {
-    res.status(200).json({ data: 'Hello world!' });
-  });
 
   // 404 handler
   app.use((req, res) => {
