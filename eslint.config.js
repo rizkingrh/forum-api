@@ -9,7 +9,7 @@ export default defineConfig([
   {
     files: ['**/*.{js,mjs,cjs}'],
     plugins: { js, vitest },
-    rules: { camelcase: 'off' },
+    rules: { camelcase: 'off', 'linebreak-style': 'off' },
     extends: ['js/recommended'],
     languageOptions: { globals: { ...globals.browser, ...globals.node, ...vitest.environments.env.globals } }
   },
